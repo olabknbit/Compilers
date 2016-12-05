@@ -83,7 +83,7 @@ class Construction(Node):
     def __init__(self, code):
         super().__init__()
         self.code = code
-        self.children = code
+        self.children = tuple(code)
 
 
 class DeclarationList(NodeList):
@@ -97,7 +97,7 @@ class Declaration(Node):
         self.type = type
         self.value = value
         self.line = line
-        self.children = tuple(value)
+        self.children = tuple(value.list)
 
 
 class InitList(NodeList):
@@ -111,7 +111,7 @@ class Init(Node):
         self.ID = ID
         self.expr = expr
         self.line = line
-        self.children = expr
+        self.children = tuple(expr)
 
 
 class InstructionList(NodeList):
@@ -123,7 +123,7 @@ class Instruction(Node):
     def __init__(self, instruction):
         super().__init__()
         self.instruction = instruction
-        self.children = instruction
+        self.children = tuple(instruction)
 
 
 class PrintInstr(Node):
@@ -132,7 +132,7 @@ class PrintInstr(Node):
         self.expression = expression
         self.type = type
         self.line = line
-        self.children = expression
+        self.children = tuple(expression)
 
 
 class LabeledInstr(Node):
@@ -140,7 +140,7 @@ class LabeledInstr(Node):
         super().__init__()
         self.id = id
         self.instruction = instruction
-        self.children = instruction
+        self.children = tuple(instruction)
 
 
 class Assignment(Node):
@@ -149,7 +149,7 @@ class Assignment(Node):
         self.expression = expression
         self.id = id
         self.line = line
-        self.children = expression
+        self.children = tuple(expression)
 
 
 
@@ -160,7 +160,7 @@ class ChoiceInstr(Node):
         self.instruction = instruction1
         self.instruction_else = instruction2
         self.children = (instruction1, instruction2)
-#TODO add overloaded super to everything
+
 
 class WhileInstr(Node):
     def __init__(self, condition, instruction):
@@ -174,7 +174,7 @@ class RepeatInstr(Node):
     def __init__(self, instructions, condition):
         super().__init__()
         self.instructions = instructions
-        self.condition = condition
+        self.condition = tuple(condition)
 
 
 class ReturnInstr(Node):
@@ -232,7 +232,7 @@ class Const(Node):
     def __init__(self, value):
         super().__init__()
         self.value = value
-        self.children = (value)
+        self.children = tuple(value)
 
 
 class Integer(Const):
@@ -254,15 +254,15 @@ class String(Const):
         super().__init__(value)
         self.value = value
         self.line = line
-        self.children = (value)
+        self.children = tuple(value)
 
 
 class Variable(Node):
-    def __init__(self, name, line, token=None):
+    def __init__(self, name, line):
         super().__init__()
         self.name = name
+        # self.children = tuple(name)
         self.line = line
-        self.token = token
 
 
 class Fundef(Node):

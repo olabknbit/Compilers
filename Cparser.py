@@ -35,13 +35,13 @@ class Cparser(object):
             print("Unexpected end of input")
 
     def p_program(self, p):
-        """program : constructions"""
+        """program : constructions
+                   | """
         p[0] = AST.Program(p[1])
 
     def p_constructions(self, p):
         """constructions : constructions construction
-                         | construction
-                         | """
+                         | construction"""
         if len(p) > 1:
             if isinstance(p[1], AST.ConstructionList):
                 p[1].add_to_list(p[2])
@@ -225,7 +225,7 @@ class Cparser(object):
             if p[1] != '(':
                 p[0] = AST.BinExpr(p[2], p[1], p[3], p.lineno(2))
             else:
-                p[0] = AST.Expression(None, p[2], None)
+                p[0] = p[2]
 
     def p_expr_list_or_empty(self, p):
         """expr_list_or_empty : expr_list
@@ -251,7 +251,7 @@ class Cparser(object):
     def p_args_list_or_empty(self, p):
         """args_list_or_empty : args_list
                               | """
-        p[0] = p[1] if len(p) > 1 else AST.ArgList(p.lineno(2))
+        p[0] = p[1] if len(p) > 1 else AST.ArgList(p.lineno(0))
 
     def p_args_list(self, p):
         """args_list : args_list ',' arg

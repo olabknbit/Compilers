@@ -10,7 +10,6 @@ class NodeVisitor(object):
         return visitor(node)
 
     def generic_visit(self, node):  # Called if no explicit visitor function exists for a node.
-
         if isinstance(node, list):
             for elem in node:
                 self.visit(elem)
@@ -23,15 +22,11 @@ class NodeVisitor(object):
                 elif isinstance(child, AST.Node) or isinstance(child, AST.Const):
                     self.visit(child)
 
-                    # simpler version of generic_visit, not so general
-                    # def generic_visit(self, node):
-                    #    for child in node.children:
-                    #        self.visit(child)
-
 
 class TypeChecker(NodeVisitor):
     ttype = {}
     isValid = True
+    loop = []
 
     # operatory arytmetyczne i binarne
     ttype['+'] = {}
@@ -131,6 +126,7 @@ class TypeChecker(NodeVisitor):
     def visit_Program(self, node):
         self.symbols = SymbolTable(None, 'global')
         self.generic_visit(node)
+        return self.isValid
 
     def visit_Declaration(self, node):
         declaration_type = node.type
@@ -181,7 +177,8 @@ class TypeChecker(NodeVisitor):
         try:
             self.symbols.put(node.id, (node.type, node.args, False))
             self.symbols = self.symbols.pushScope(node.id)
-            self.generic_visit(node)
+            self.visit(node.args)
+            self.visit_CompoundInstr(node.instr, fundef=True)
             self.symbols = self.symbols.popScope()
             if self.symbols.get(node.id)[2] == False:
                 print('Error: Missing return statement in function \'' + node.id + '\' returning', node.type + ': line',
@@ -190,6 +187,16 @@ class TypeChecker(NodeVisitor):
         except (ValueError, NameError):
             print ("Error: Redefinition of function '" + node.id + "': line " + str(node.line))
             self.isValid = False
+
+    def visit_CompoundInstr(self, node, fundef=False):
+        if not fundef:
+            self.symbols = self.symbols.pushScope('compound')
+            self.visit(node.declarations)
+            self.visit(node.instructions)
+            self.symbols = self.symbols.popScope()
+        else:
+            self.visit(node.declarations)
+            self.visit(node.instructions)
 
 
     def visit_Arg(self, node):
@@ -231,24 +238,27 @@ class TypeChecker(NodeVisitor):
 
     def visit_ReapeatInstr(self, node):
         self.visit(node.condition)
-        self.symbols.pushScope('repeat')
+        self.loop.append(1)
         self.visit(node.instructions)
-        self.symbols.popScope()
+        self.loop.pop()
 
     def visit_WhileInstr(self, node):
         self.visit(node.condition)
-        self.symbols.pushScope('while')
+        self.loop.append(1)
         self.visit(node.instruction)
-        self.symbols.popScope()
+        self.loop.pop()
 
     def visit_ReturnInstr(self, node):
-        if self.symbols.getParentScope() is None:
+        symbols = self.symbols
+        while symbols.name == 'compound':
+            symbols = symbols.getParentScope()
+        if symbols.getParentScope() is None:
             print('Error: return instruction outside a function call: line', node.line)
         else:
-            par_ret = self.symbols.getParentScope().get(self.symbols.name)[0]
+            par_ret = symbols.getParentScope().get(symbols.name)[0]
             ret = self.visit(node.expression)
-            fundef = self.symbols.getParentScope().get(self.symbols.name)
-            self.symbols.getParentScope().symbols[self.symbols.name] = (fundef[0], fundef[1], True)
+            fundef = symbols.getParentScope().get(symbols.name)
+            symbols.getParentScope().symbols[symbols.name] = (fundef[0], fundef[1], True)
 
             if par_ret == ret:
                 pass
@@ -257,14 +267,14 @@ class TypeChecker(NodeVisitor):
                 self.isValid = False
 
     def visit_ContinueInstr(self, node):
-        if self.symbols.name == 'repeat' or self.symbols.name == 'while':
+        if len(self.loop) > 0:
             pass
         else:
             print('Error: continue instruction outside a loop: line', node.line)
             self.isValid = False
 
     def visit_BreakInstr(self, node):
-        if self.symbols.name == 'repeat' or self.symbols.name == 'while':
+        if len(self.loop) > 0:
             pass
         else:
             print('Error: break instruction outside a loop: line', node.line)

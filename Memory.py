@@ -20,7 +20,7 @@ class MemoryStack:
             self.memory.append(memory)
 
     def get(self, name):  # gets from memory stack current value of variable <name>
-        if self.memory[-1].has_key(name):
+        if len(self.memory) > 0 and self.memory[-1].has_key(name):
             return self.memory[-1].get(name)
         else:
             return None

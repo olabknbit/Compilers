@@ -40,29 +40,41 @@ class Interpreter(object):
 
     @when(AST.BinExpr)
     def visit(self, node):
-        r1 = node.left.visit(self)
-        r2 = node.right.visit(self)
+        r1 = self.visit(node.left)
+        r2 = self.visit(node.right)
         return self.op[node.op](r1, r2)
 
     @when(AST.Assignment)
     def visit(self, node):
         id = self.memory_stack_local.get(node.id)
-        if id is not None:
-            self.memory_stack_local.set(node.id, self.visit(node.expression))
+        value = self.visit(node.expression)
+        if id is None:
+            id = self.memory_stack_global.get(node.id)
+            self.memory_stack_global.set(node.id, value)
         else:
-            self.memory_stack_global.set(node.id, self.visit(node.expression))
+            self.memory_stack_local.set(node.id, value)
+        print(id, value)
 
     @when(AST.Const)
     def visit(self, node):
         return node.value
 
-    # simplistic while loop interpretation
     @when(AST.WhileInstr)
     def visit(self, node):
-        r = None
-        while node.cond.accept(self):
-            r = node.body.accept(self)
-        return r
+        while self.visit(node.condition):
+            try:
+                self.visit(node.instruction)
+            except ContinueException as ce:
+                self.visit(node)
+            except BreakException as be:
+                break
+
+    @when(AST.ChoiceInstr)
+    def visit(self, node):
+        if self.visit(node.condition):
+            self.visit(node.instruction)
+        else:
+            self.visit(node.instruction_else)
 
     @when(AST.Fundef)
     def visit(self, node):
@@ -70,10 +82,57 @@ class Interpreter(object):
 
     @when(AST.Funcall)
     def visit(self, node):
-        fun = self.memory_stack_global.get(node.id)
-        self.memory_stack_local.push(node.id)
-        for arg_def, arg_call in zip(fun[0], node.args):
-            self.memory_stack_local.insert(arg_def.name, self.visit(arg_call))
-        ret = self.visit(fun[1])
-        self.memory_stack_local.pop()
-        return ret
+        try:
+            fun = self.memory_stack_global.get(node.id)
+            self.memory_stack_local.push(Memory(node.id))
+            for arg_def, arg_call in zip(fun[0], node.args):
+                self.memory_stack_local.insert(arg_def.name, self.visit(arg_call))
+            self.visit(fun[1])
+        except ReturnValueException as e:
+            self.memory_stack_local.pop()
+            return e.value
+
+    @when(AST.ReturnInstr)
+    def visit(self, node):
+        raise ReturnValueException(self.visit(node.expression))
+
+    @when(AST.PrintInstr)
+    def visit(self, node):
+        print(self.visit(node.expression))
+
+    @when(AST.Init)
+    def visit(self, node):
+        print("ble")
+        if len(self.memory_stack_local.memory) > 0:
+            self.memory_stack_local.insert(node.ID, self.visit(node.expr))
+        else:
+            self.memory_stack_global.insert(node.ID, self.visit(node.expr))
+
+    @when(AST.Integer)
+    def visit(self, node):
+        return int(node.value)
+
+    @when(AST.Float)
+    def visit(self, node):
+        return float(node.value)
+
+    @when(AST.Variable)
+    def visit(self, node):
+        val = self.memory_stack_local.get(node.name)
+        if val is not None:
+            return val
+        else:
+            return self.memory_stack_global.get(node.name)
+
+    @when(AST.Node)
+    def visit(self, node):
+        print(node.__class__)
+        for child in node.children:
+            print(child.__class__)
+            self.visit(child)
+
+
+    @when(AST.ConstructionList)
+    def visit(self, node):
+        for child in node.children:
+            self.visit(child)
