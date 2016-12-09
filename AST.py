@@ -206,10 +206,10 @@ class CompoundInstr(Node):
 
 
 class Condition(Node):
-    def __init__(self, expression, token=None):
+    def __init__(self, expression):
         super().__init__()
         self.expression = expression
-        self.token = token
+        self.children = tuple(expression)
 
 
 class ExpressionList(NodeList):

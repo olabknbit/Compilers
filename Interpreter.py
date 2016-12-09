@@ -21,12 +21,12 @@ class Interpreter(object):
           '|': lambda x, y: x | y,
           '&': lambda x, y: x & y,
           '^': lambda x, y: x ^ y,
-          '>': lambda x, y: x % y,
-          '>=': lambda x, y: x % y,
-          '<': lambda x, y: x % y,
-          '<=': lambda x, y: x % y,
-          '==': lambda x, y: x % y,
-          '!=': lambda x, y: x % y
+          '>': lambda x, y: x > y,
+          '>=': lambda x, y: x >= y,
+          '<': lambda x, y: x < y,
+          '<=': lambda x, y: x <= y,
+          '==': lambda x, y: x == y,
+          '!=': lambda x, y: x != y
           }
 
     @on('node')
@@ -42,18 +42,18 @@ class Interpreter(object):
     def visit(self, node):
         r1 = self.visit(node.left)
         r2 = self.visit(node.right)
-        return self.op[node.op](r1, r2)
+        ret_val = self.op[node.op](r1, r2)
+        return ret_val
 
     @when(AST.Assignment)
     def visit(self, node):
-        id = self.memory_stack_local.get(node.id)
+        val_memory = self.memory_stack_local.get(node.id)
         value = self.visit(node.expression)
-        if id is None:
-            id = self.memory_stack_global.get(node.id)
+        if val_memory is None:
+            val_memory = self.memory_stack_global.get(node.id)
             self.memory_stack_global.set(node.id, value)
         else:
             self.memory_stack_local.set(node.id, value)
-        print(id, value)
 
     @when(AST.Const)
     def visit(self, node):
@@ -68,6 +68,10 @@ class Interpreter(object):
                 self.visit(node)
             except BreakException as be:
                 break
+
+    @when(AST.Condition)
+    def visit(self, node):
+        return self.visit(node.expression)
 
     @when(AST.ChoiceInstr)
     def visit(self, node):
@@ -84,9 +88,13 @@ class Interpreter(object):
     def visit(self, node):
         try:
             fun = self.memory_stack_global.get(node.id)
+            arg_calls = []
+            for arg_call in node.args.list:
+                arg_calls.append(self.visit(arg_call))
             self.memory_stack_local.push(Memory(node.id))
-            for arg_def, arg_call in zip(fun[0], node.args):
-                self.memory_stack_local.insert(arg_def.name, self.visit(arg_call))
+            for arg_def, arg_call in zip(fun[0].list, arg_calls):
+                self.memory_stack_local.insert(arg_def.name, arg_call)
+
             self.visit(fun[1])
         except ReturnValueException as e:
             self.memory_stack_local.pop()
@@ -102,7 +110,6 @@ class Interpreter(object):
 
     @when(AST.Init)
     def visit(self, node):
-        print("ble")
         if len(self.memory_stack_local.memory) > 0:
             self.memory_stack_local.insert(node.ID, self.visit(node.expr))
         else:
@@ -126,9 +133,7 @@ class Interpreter(object):
 
     @when(AST.Node)
     def visit(self, node):
-        print(node.__class__)
         for child in node.children:
-            print(child.__class__)
             self.visit(child)
 
 
