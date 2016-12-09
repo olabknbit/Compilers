@@ -47,10 +47,9 @@ class Interpreter(object):
 
     @when(AST.Assignment)
     def visit(self, node):
-        val_memory = self.memory_stack_local.get(node.id)
         value = self.visit(node.expression)
+        val_memory = self.memory_stack_local.get(node.id)
         if val_memory is None:
-            val_memory = self.memory_stack_global.get(node.id)
             self.memory_stack_global.set(node.id, value)
         else:
             self.memory_stack_local.set(node.id, value)
@@ -59,15 +58,30 @@ class Interpreter(object):
     def visit(self, node):
         return node.value
 
+    @when(AST.RepeatInstr)
+    def visit(self, node):
+        try:
+            while(True):
+                try:
+                    self.visit(node.instructions)
+                except ContinueException as ce:
+                    if not self.visit(node.condition):
+                        self.visit(node)
+                if self.visit(node.condition):
+                    break
+        except BreakException as be:
+            return
+
     @when(AST.WhileInstr)
     def visit(self, node):
-        while self.visit(node.condition):
-            try:
-                self.visit(node.instruction)
-            except ContinueException as ce:
-                self.visit(node)
-            except BreakException as be:
-                break
+        try:
+            while self.visit(node.condition):
+                try:
+                    self.visit(node.instruction)
+                except ContinueException as ce:
+                    self.visit(node)
+        except BreakException as be:
+                return
 
     @when(AST.Condition)
     def visit(self, node):
@@ -95,7 +109,7 @@ class Interpreter(object):
             for arg_def, arg_call in zip(fun[0].list, arg_calls):
                 self.memory_stack_local.insert(arg_def.name, arg_call)
 
-            self.visit(fun[1])
+            self.visit(fun[1], True)
         except ReturnValueException as e:
             self.memory_stack_local.pop()
             return e.value
@@ -103,6 +117,14 @@ class Interpreter(object):
     @when(AST.ReturnInstr)
     def visit(self, node):
         raise ReturnValueException(self.visit(node.expression))
+
+    @when(AST.BreakInstr)
+    def visit(self, node):
+        raise BreakException()
+
+    @when(AST.ContinueInstr)
+    def visit(self, node):
+        raise ContinueException()
 
     @when(AST.PrintInstr)
     def visit(self, node):
@@ -123,6 +145,10 @@ class Interpreter(object):
     def visit(self, node):
         return float(node.value)
 
+    @when(AST.String)
+    def visit(self, node):
+        return str(node.value[1:-1])
+
     @when(AST.Variable)
     def visit(self, node):
         val = self.memory_stack_local.get(node.name)
@@ -141,3 +167,15 @@ class Interpreter(object):
     def visit(self, node):
         for child in node.children:
             self.visit(child)
+
+    @when(AST.CompoundInstr)
+    def visit(self, node, fundef=False):
+        if not fundef:
+            self.memory_stack_local.push(Memory('compound'))
+            self.visit(node.declarations)
+            self.visit(node.instructions)
+            self.memory_stack_local.pop()
+        else:
+            self.visit(node.declarations)
+            self.visit(node.instructions)
+

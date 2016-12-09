@@ -174,7 +174,7 @@ class RepeatInstr(Node):
     def __init__(self, instructions, condition):
         super().__init__()
         self.instructions = instructions
-        self.condition = tuple(condition)
+        self.condition = condition
 
 
 class ReturnInstr(Node):

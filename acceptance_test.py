@@ -19,6 +19,7 @@ class AcceptanceTests(unittest.TestCase):
             os.system("python main.py tests/{0} > tests/{1}.actual".format(filename,name))
             res = filecmp.cmp("tests/{0}.actual".format(name), "tests/{0}.expected".format(name))
             self.assertTrue(res, "files {0}.actual and {0}.expected differ".format(name))
+            print(name)
 
         func_name = file2func_name(name)
         setattr(cls, func_name, test_func)
