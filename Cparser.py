@@ -152,7 +152,7 @@ class Cparser(object):
 
     def p_repeat_instr(self, p):
         """repeat_instr : REPEAT instructions UNTIL condition ';' """
-        p[0] = AST.RepeatInstr(p[2], p[4])
+        p[0] = AST.RepeatInstr(p[2], p[4], p.lineno(1))
 
     def p_return_instr(self, p):
         """return_instr : RETURN expression ';' """
@@ -251,7 +251,7 @@ class Cparser(object):
     def p_args_list_or_empty(self, p):
         """args_list_or_empty : args_list
                               | """
-        p[0] = p[1] if len(p) > 1 else AST.ArgList(p.lineno(0))
+        p[0] = p[1] if len(p) > 1 else AST.ArgList(line = p.lineno(0))
 
     def p_args_list(self, p):
         """args_list : args_list ',' arg

@@ -171,9 +171,10 @@ class WhileInstr(Node):
 
 
 class RepeatInstr(Node):
-    def __init__(self, instructions, condition):
+    def __init__(self, instructions, condition, line):
         super().__init__()
         self.instructions = instructions
+        self.line = line
         self.condition = condition
 
 
@@ -218,13 +219,12 @@ class ExpressionList(NodeList):
 
 
 class Expression(Node):
-    def __init__(self, left, expression, right, token=None, idE=None):
+    def __init__(self, left, expression, right, idE=None):
         super().__init__()
         self.left = left
         self.expression = expression
         self.right = right
         self.id = idE
-        self.token = token
         self.children = (left, expression, right)
 
 
@@ -266,30 +266,28 @@ class Variable(Node):
 
 
 class Fundef(Node):
-    def __init__(self, id, args, instr, return_type, line, token=None):
+    def __init__(self, id, args, instr, return_type, line):
         super().__init__()
         self.id = id
         self.args = args
         self.instr = instr
         self.type = return_type
         self.line = line
-        self.token = token
         self.children = (args, instr)
 
 
 class Funcall(Node):
-    def __init__(self, id, args, line, token=None):
+    def __init__(self, id, args, line):
         super().__init__()
         self.id = id
         self.args = args
         self.line = line
-        self.token = token
 
 
 class ArgList(NodeList):
-    def __init__(self, token=None, arg=None):
+    def __init__(self, arg=None, line = None):
         super().__init__(arg)
-        self.token = token
+        self.line = line
 
 
 class Arg(Node):

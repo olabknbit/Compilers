@@ -2,7 +2,7 @@
 import AST
 import SymbolTable
 from Memory import *
-from Exceptions import  *
+from Exceptions import *
 from visit import *
 import sys
 
@@ -44,6 +44,7 @@ class Interpreter(object):
         r2 = self.visit(node.right)
         ret_val = self.op[node.op](r1, r2)
         return ret_val
+      #  return eval(str(r1) + ' ' + node.op + ' ' + str(r2))
 
     @when(AST.Assignment)
     def visit(self, node):
@@ -69,6 +70,7 @@ class Interpreter(object):
                         self.visit(node)
                 if self.visit(node.condition):
                     break
+        # TODO: Break - check scopes
         except BreakException as be:
             return
 
@@ -111,6 +113,8 @@ class Interpreter(object):
 
             self.visit(fun[1], True)
         except ReturnValueException as e:
+            while self.memory_stack_local.memory[-1].name != node.id:
+                self.memory_stack_local.pop()
             self.memory_stack_local.pop()
             return e.value
 
@@ -171,7 +175,7 @@ class Interpreter(object):
     @when(AST.CompoundInstr)
     def visit(self, node, fundef=False):
         if not fundef:
-            self.memory_stack_local.push(Memory('compound'))
+            self.memory_stack_local.push(Memory('while'))
             self.visit(node.declarations)
             self.visit(node.instructions)
             self.memory_stack_local.pop()

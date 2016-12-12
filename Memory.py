@@ -21,18 +21,15 @@ class MemoryStack:
 
     def get(self, name):  # gets from memory stack current value of variable <name>
         # val_memory = self.get(name)
-        val_memory = None
-        if val_memory is None:
-            for mem in self.memory[::-1]:
-                if mem.name == 'compound':
-                    if mem.has_key(name):
-                        return mem.get(name)
-                else:
-                    if mem.has_key(name):
-                        return mem.get(name)
-            return None
-        else:
-            return val_memory
+        for mem in self.memory[::-1]:
+            if mem.name == 'while':
+                if mem.has_key(name):
+                    return mem.get(name)
+            else:
+                if mem.has_key(name):
+                    return mem.get(name)
+                return None
+        return None
 
     def insert(self, name, value):  # inserts into memory stack variable <name> with value <value>
         self.memory[-1].put(name, value)
@@ -41,12 +38,14 @@ class MemoryStack:
         val_memory = None
         if val_memory is None:
             for mem in self.memory[::-1]:
-                if mem.name == 'compound':
+                if mem.name == 'while':
                     if mem.has_key(name):
                         mem.put(name, value)
+                        return
                 else:
                     if mem.has_key(name):
                         mem.put(name, value)
+                        return
 
     def push(self, memory):  # pushes memory <memory> onto the stack
         self.memory.append(memory)
