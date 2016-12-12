@@ -76,14 +76,17 @@ class Interpreter(object):
 
     @when(AST.WhileInstr)
     def visit(self, node):
+        # _len = len(self.memory_stack_local.memory)
         try:
             while self.visit(node.condition):
                 try:
                     self.visit(node.instruction)
                 except ContinueException as ce:
-                    self.visit(node)
+                    #self.visit(node)
+                    continue
         except BreakException as be:
-                return
+            # self.memory_stack_local.memory = self.memory_stack_local.memory[:_len-1]
+            return
 
     @when(AST.Condition)
     def visit(self, node):
@@ -175,10 +178,17 @@ class Interpreter(object):
     @when(AST.CompoundInstr)
     def visit(self, node, fundef=False):
         if not fundef:
-            self.memory_stack_local.push(Memory('while'))
-            self.visit(node.declarations)
-            self.visit(node.instructions)
-            self.memory_stack_local.pop()
+            try:
+                self.memory_stack_local.push(Memory('while'))
+                # print('|' + str(node.line))
+                self.visit(node.declarations)
+                self.visit(node.instructions)
+                self.memory_stack_local.pop()
+                # print('\\' + str(node.line))
+            except (BreakException, ContinueException):
+                self.memory_stack_local.pop()
+                # print('/' + str(node.line))
+                raise
         else:
             self.visit(node.declarations)
             self.visit(node.instructions)
